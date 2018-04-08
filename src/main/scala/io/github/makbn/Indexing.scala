@@ -1,12 +1,16 @@
 package io.github.makbn
 
+import java.util
+
 import org.apache.lucene.analysis.standard.StandardAnalyzer
+import org.apache.lucene.analysis.util.CharArraySet
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index._
 import org.apache.lucene.store.RAMDirectory
 import org.apache.lucene.util.Version
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
+
 import scala.collection.mutable.HashMap
 import scala.collection.mutable.ArrayBuffer
 
@@ -15,7 +19,30 @@ object Indexing {
   private val APP_NAME = "Indexing with Lucene"
   private val MASTER = "local[*]"
   private val DATA_FILE_DIR = "src/main/resources/medical.all"
-  private val analyzer = new StandardAnalyzer(Version.LUCENE_40)
+  private val STOP_WORDS=new util.ArrayList[String](){{
+    add("is");
+    add("the");
+    add("but");
+    add("no");
+    add("a");
+    add("not");
+    add("other");
+    add("or");
+    add("it");
+    add("it's");
+    add("its");
+    add("in");
+    add("his");
+    add("her");
+    add("my");
+    add("nor");
+    add("and");
+    add("ok");
+    add("with");
+    add("hk");
+    add("but");
+  }}
+  private val analyzer = new StandardAnalyzer(Version.LUCENE_40,new CharArraySet(Version.LUCENE_40,STOP_WORDS,false))
   private val config = new IndexWriterConfig(Version.LUCENE_40, analyzer)
   private val ramDirectory = new RAMDirectory
 
@@ -70,6 +97,7 @@ object Indexing {
     val indexWriter = new IndexWriter(ramDirectory, config)
     val dataFile = sc.textFile(DATA_FILE_DIR)
     val prs = pars(dataFile)
+
 
     for (i <- 0 to prs.length - 1)
       indexWriter.addDocument(createDoc(prs(i)))
