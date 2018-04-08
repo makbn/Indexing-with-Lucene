@@ -39,8 +39,10 @@ object indexing {
     */
   def createDoc(arg: (Int, String)): Document = {
     val doc = new Document()
-    doc.add(new Field("text", arg._2, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS))
-    doc.add(new Field("id", String.valueOf(arg._1), Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS))
+    val id = new Field("id", String.valueOf(arg._1), Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS)
+    val text = new Field("text", arg._2, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS)
+    doc.add(text)
+    doc.add(id)
     doc
   }
 
