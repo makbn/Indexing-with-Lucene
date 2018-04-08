@@ -5,16 +5,12 @@ import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index._
 import org.apache.lucene.store.RAMDirectory
 import org.apache.lucene.util.Version
-import org.apache.spark.rdd.RDD
-import org.apache.spark.{SparkConf, SparkContext}
-
 import scala.collection.mutable._
+import scala.io.Source
 
 
 object indexing {
-
-  private val AppName = "Indexing with Lucene"
-  private val Master = "local[*]"
+  
   private val DataFileDir = "src/main/resources/medical.all"
   private val analyzer = new StopAnalyzer(Version.LUCENE_40)
  // private val analyzer = new StandardAnalyzer(Version.LUCENE_40)
@@ -48,50 +44,30 @@ object indexing {
 
   /**
     * convert lines of input file to prescriptions
-    * @param dataFile
     * @return
     */
-  def pars(dataFile: RDD[String]): Array[(Int, String)] = {
-    val regex = ".I\\s\\d{1,}"
+  def pars(): Array[(Int,String)] ={
+    val regex = "\\.I\\s\\d{1,}.W"
+    val file= Source.fromFile(DataFileDir).getLines().toArray
+    val raw =new StringBuilder
+    for(line <- file)
+      raw.appendAll(line)
+    val per=raw.result.split(regex)
     val prescriptions = new ArrayBuffer[(Int, String)]()
-    val arr = dataFile.collect()
 
-    var count : Int = 1
-    var i : Int = 0
-    while (i < arr.length) {
-      var prescription = new StringBuilder
-      if (arr(i).matches(regex)) {
-        var j = i.+(2)
-        while (j < arr.length && !arr(j).matches(regex)) {
-          prescription.appendAll(arr(j).trim + " ")
-          j += 1
-        }
-        prescriptions += ((count, prescription.result))
-        i = j.+(-2)
-        count += 1
-      }
-      i += 1
+    for(id <- 0 to per.length-1){
+      prescriptions += ((id, per(id)))
     }
     prescriptions.toArray
   }
 
   def indexing() = {
-    val sparkConf = new SparkConf()
-      .setAppName(AppName)
-      .setMaster(Master)
-    val sc = new SparkContext(sparkConf)
-    implicit val sparkContext = sc
-
     val indexWriter = new IndexWriter(ramDirectory, config)
-    val dataFile = sc.textFile(DataFileDir)
-    val prs = pars(dataFile)
-
-
+    val prs = pars()
     for (i <- 0 to prs.length - 1)
       indexWriter.addDocument(createDoc(prs(i)))
     indexWriter.commit()
     indexWriter.close()
-    sc.stop()
   }
 
   /**
