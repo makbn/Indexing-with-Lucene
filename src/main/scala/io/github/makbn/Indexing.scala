@@ -1,9 +1,6 @@
 package io.github.makbn
 
-import java.util
-
-import org.apache.lucene.analysis.standard.StandardAnalyzer
-import org.apache.lucene.analysis.util.CharArraySet
+import org.apache.lucene.analysis.core.StopAnalyzer
 import org.apache.lucene.document.{Document, Field}
 import org.apache.lucene.index._
 import org.apache.lucene.store.RAMDirectory
@@ -19,30 +16,8 @@ object Indexing {
   private val APP_NAME = "Indexing with Lucene"
   private val MASTER = "local[*]"
   private val DATA_FILE_DIR = "src/main/resources/medical.all"
-  private val STOP_WORDS=new util.ArrayList[String](){{
-    add("is");
-    add("the");
-    add("but");
-    add("no");
-    add("a");
-    add("not");
-    add("other");
-    add("or");
-    add("it");
-    add("it's");
-    add("its");
-    add("in");
-    add("his");
-    add("her");
-    add("my");
-    add("nor");
-    add("and");
-    add("ok");
-    add("with");
-    add("hk");
-    add("but");
-  }}
-  private val analyzer = new StandardAnalyzer(Version.LUCENE_40,new CharArraySet(Version.LUCENE_40,STOP_WORDS,false))
+  private val analyzer = new StopAnalyzer(Version.LUCENE_40)
+ // private val analyzer = new StandardAnalyzer(Version.LUCENE_40)
   private val config = new IndexWriterConfig(Version.LUCENE_40, analyzer)
   private val ramDirectory = new RAMDirectory
 
@@ -57,6 +32,11 @@ object Indexing {
     }
   }
 
+  /**
+    * create document for each record
+    * @param arg
+    * @return
+    */
   def createDoc(arg: (Int, String)): Document = {
     val doc = new Document()
     doc.add(new Field("text", arg._2, Field.Store.YES, Field.Index.ANALYZED, Field.TermVector.WITH_POSITIONS_OFFSETS))
@@ -64,6 +44,11 @@ object Indexing {
     return doc
   }
 
+  /**
+    * convert lines of input file to prescriptions
+    * @param dataFile
+    * @return
+    */
   def pars(dataFile: RDD[String]): Array[(Int, String)] = {
     val regex = ".I\\s\\d{1,}"
     val prescriptions = new ArrayBuffer[(Int, String)]()
@@ -106,6 +91,10 @@ object Indexing {
     sc.stop()
   }
 
+  /**
+    * generate output result
+    * @return
+    */
   def getFreq(): HashMap[String, HashMap[Int, Long]] = {
     try {
       val result = new HashMap[String, HashMap[Int, Long]]()
